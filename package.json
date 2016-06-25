@@ -20,7 +20,7 @@
     "canvas"
   ],
   "license": "",
-  "main": "confttDisplay.js",
+  "main": "./confttDisplay.js",
   "maintainers": [
     {
       "email": "meir.shahar@gmail.com",
