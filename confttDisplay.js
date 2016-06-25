@@ -1,5 +1,5 @@
 /**
- * Created by  meir on 6/25/2016.
+ * Created by meir on 6/25/2016.
  */
 
 !function(){
@@ -7,7 +7,7 @@
     version: "0.9.0",
     buildTopicsList: buildTopicsList,
     buildTimeTable: buildTimeTable
-  }}; // semver
+  }; // semver
 
 function formatDuration(start, duration){
     var result = '';
