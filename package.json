@@ -1,0 +1,43 @@
+{
+  "author": {
+    "name": "Meir Shahar",
+    "url": "https://www.linkedin.com/in/meirs"
+  },
+  "browser": "",
+  "dependencies": {},
+  "description": "ConfTT display library",
+  "devDependencies": {
+    "smash": "0.0"
+  },
+  "directories": {},
+  "homepage": "https://www.linkedin.com/in/meirs",
+  "keywords": [
+    "dom",
+    "w3c",
+    "visualization",
+    "svg",
+    "animation",
+    "canvas"
+  ],
+  "license": "",
+  "main": "confttDisplay.js",
+  "maintainers": [
+    {
+      "email": "meir.shahar@gmail.com",
+      "name": "Meir Shahar"
+    }
+  ],
+  "name": "confTTDisplay",
+  "optionalDependencies": {},
+  "readme": "",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:meiriko/confttDisplay.git"
+  },
+  "scripts": {
+    "xpostpublish": "VERSION=`node -e 'console.log(require(\"./package.json\").version)'`; git push && git push --tags && cp -v README.md LICENSE confttDisplay.js && git commit -m \"Release $VERSION.\" && git tag -am \"Release $VERSION.\" v${VERSION} && git push && git push --tags && cd - && git commit -m \"d3 ${VERSION}\" && git push",
+    "prepublish": "rm -f confttDisplay.js && smash src/confttDisplay.js > confttDisplay.js",
+    "xtest": "vows && echo"
+  },
+  "version": "0.9.0"
+}
