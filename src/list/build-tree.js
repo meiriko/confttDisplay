@@ -4,6 +4,16 @@ function generateTopicsTree(rawData) {
     var topics = _(JSON.search(data, '/*/sessions/topics[(id)]')).uniq().sortBy('id').value();
     // var noTopicSessions = JSON.search(data, '/*/sessions[not(./topics)]');
     var noTopicSessions = JSON.search(data, '/*/sessions[(./topics[not(id)])]');
+    _.each(topicSessions, function(session){
+        if(session.time && !_.isDate(session.time)){
+            session.time = new Date(session.time);
+        }
+    });
+    _.each(noTopicSessions, function(session){
+        if(session.time && !_.isDate(session.time)){
+            session.time = new Date(session.time);
+        }
+    });
 
     var topicsTree = _.flatten([
         _.map(topics, function (topic) {
