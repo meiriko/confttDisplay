@@ -232,13 +232,6 @@ function buildTimeTable(selector, rawData) {
             },
             button: true
         },
-        xcontent: function(event){
-            var sessionData = _.get(d3.select(event.currentTarget).data(), [0, 'session']);
-            return {
-                title: sessionData.name,
-                text: sessionData.description
-            };
-        },
         show: {
             // 	event: 'mouseover'
             solo: true
@@ -258,8 +251,12 @@ function buildTimeTable(selector, rawData) {
             // }
         },
         position: {
-            my: 'middle left',  // Position my top left...
-            at: 'middle right', // at the bottom right of...
+            viewport: $(container.node()),
+            adjust: {
+                method: 'flipinvert'
+            },
+            my: 'middle left',
+            at: 'middle right'
         }
     });
 }
