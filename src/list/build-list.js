@@ -1,5 +1,6 @@
 function buildTopicsList(selector, rawData) {
     var container = d3.select(selector);
+    container.selectAll('*').remove();
     var tree = generateTopicsTree(rawData);
     var topicContainer = container.selectAll('div').data(tree).enter()
         .classedDiv('topic');

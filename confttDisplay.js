@@ -52,6 +52,7 @@ addD3Action('classedDiv', function(className){
 });
 function buildTopicsList(selector, rawData) {
     var container = d3.select(selector);
+    container.selectAll('*').remove();
     var tree = generateTopicsTree(rawData);
     var topicContainer = container.selectAll('div').data(tree).enter()
         .classedDiv('topic');
@@ -164,6 +165,7 @@ function sortByStringDate(key, array){
 }
 function buildTimeTable(selector, rawData) {
     var container = d3.select(selector);
+    container.selectAll('*').remove();
     var data = Defiant.getSnapshot(rawData);
 
     var scheduledSessions = _.filter(JSON.search(data, '/*/sessions'), _.property('time'));
@@ -177,15 +179,12 @@ function buildTimeTable(selector, rawData) {
     var daySpan = latestIntoDay - earliestIntoDay;
     var sortedSessionDays = _(scheduledSessions).sortBy('time').map(_.method('time.toDateString')).unique().value();
     var emptyDaysForDefaults = _.zipObject(sortedSessionDays, _.map(sortedSessionDays, _.constant([])));
-    var byRoomSessions = _(scheduledSessions).groupBy('room.name').mapValues(function(value){
+    var byRoomSessions = _(scheduledSessions).groupBy('room.name').omit('undefined').mapValues(function(value){
         return _(value).groupBy(_.method('time.toDateString'))
             .mapValues(function(value){
                 return _.sortBy(value, 'time');
             }).defaults(emptyDaysForDefaults).value();
     }).value();
-
-    console.log(byRoomSessions);
-    container.selectAll('*').remove();
 
     var roomTimeTables = container.selectAll('div').data(d3.entries(byRoomSessions))
         .enter().classedDiv('room-time-table');
