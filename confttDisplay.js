@@ -27,14 +27,14 @@ function formatDuration(start, duration){
 }
 function formatSessionTime(session){
     return (
-            session.start ? d3.time.format('%x ')(session.start) : '' ) +
-        formatDuration(session.start, session.duration || session.end);
+            session.time ? d3.time.format('%x ')(session.time) : '' ) +
+        formatDuration(session.time, session.duration || session.end);
 }
 function formatTalkDuration(talk, index){
     var parentData = _.first(d3.selectAll($(this).closest('.session')).data());
     if(parentData){
         var offset = _(parentData.talks).take(index).sum('duration');
-        return formatDuration(parentData.start && new Date(parentData.start.getTime() + offset * 60000), talk.duration);
+        return formatDuration(parentData.time && new Date(parentData.time.getTime() + offset * 60000), talk.duration);
     }
 }
 // import 'table/';
@@ -104,19 +104,19 @@ function generateTopicsTree(rawData) {
     return (topicsTree);
 }
 function sessionToDuration(session){
-    var result = {start: session.start};
+    var result = {start: session.time};
     var end = (session.duration || session.end);
     if(end){
-        result.end = _.isDate(end) ? end: new Date(session.start.getTime() + end * 60000);
+        result.end = _.isDate(end) ? end: new Date(session.time.getTime() + end * 60000);
     } else {
-        result.end = session.start;
+        result.end = session.time;
     }
     return result;
 }
 
 function calculateSessionEnd(session){
-    var end = (session.duration || session.end || session.start);
-    return (_.isDate(end) ? end: new Date(session.start.getTime() + end * 60000));
+    var end = (session.duration || session.end || session.time);
+    return (_.isDate(end) ? end: new Date(session.time.getTime() + end * 60000));
 }
 
 function calculateSessionEndIntoDay(session){
@@ -133,17 +133,17 @@ function minutesGap(date1, date2){
 function sessionsWithGaps(start, end, sessionWrapper){
     var sessions = _.map(sessionWrapper.value, function(session){
         return {
-            start: minutesIntoDay(session.start) - start,
+            start: minutesIntoDay(session.time) - start,
             end: calculateSessionEndIntoDay(session) -  start,
             session: session
         };
     });
     var breaks = _([0, _.map(sessions, function(session){
-        return [session.start, session.end];
+        return [session.time, session.end];
     }), end - start]).flattenDeep().chunk(2).reject(_.spread(_.eq))
         .map(_.partial(_.zipObject,['start', 'end'])).value();
     var schedule = _([sessions, breaks]).flatten().sortBy('start').each(function(item){
-        item.duration = item.end - item.start;
+        item.duration = item.end - item.time;
     }).value();
     return (schedule);
 }
@@ -157,6 +157,11 @@ function buildTimeTable(selector, rawData) {
     var data = Defiant.getSnapshot(rawData);
 
     var scheduledSessions = _.filter(JSON.search(data, '/*/sessions'), _.property('start'));
+    _.each(scheduledSessions, function(session){
+        if(session.time && !_.isDate(session.time)){
+            session.time = new Date(session.time);
+        }
+    });
     var earliestIntoDay = _(scheduledSessions).map('start').map(minutesIntoDay).min();
     var latestIntoDay = _(scheduledSessions).map(calculateSessionEnd).map(minutesIntoDay).max();
     var daySpan = latestIntoDay - earliestIntoDay;

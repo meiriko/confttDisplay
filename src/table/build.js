@@ -3,6 +3,11 @@ function buildTimeTable(selector, rawData) {
     var data = Defiant.getSnapshot(rawData);
 
     var scheduledSessions = _.filter(JSON.search(data, '/*/sessions'), _.property('start'));
+    _.each(scheduledSessions, function(session){
+        if(session.time && !_.isDate(session.time)){
+            session.time = new Date(session.time);
+        }
+    });
     var earliestIntoDay = _(scheduledSessions).map('start').map(minutesIntoDay).min();
     var latestIntoDay = _(scheduledSessions).map(calculateSessionEnd).map(minutesIntoDay).max();
     var daySpan = latestIntoDay - earliestIntoDay;

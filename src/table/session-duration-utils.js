@@ -1,17 +1,17 @@
 function sessionToDuration(session){
-    var result = {start: session.start};
+    var result = {start: session.time};
     var end = (session.duration || session.end);
     if(end){
-        result.end = _.isDate(end) ? end: new Date(session.start.getTime() + end * 60000);
+        result.end = _.isDate(end) ? end: new Date(session.time.getTime() + end * 60000);
     } else {
-        result.end = session.start;
+        result.end = session.time;
     }
     return result;
 }
 
 function calculateSessionEnd(session){
-    var end = (session.duration || session.end || session.start);
-    return (_.isDate(end) ? end: new Date(session.start.getTime() + end * 60000));
+    var end = (session.duration || session.end || session.time);
+    return (_.isDate(end) ? end: new Date(session.time.getTime() + end * 60000));
 }
 
 function calculateSessionEndIntoDay(session){
