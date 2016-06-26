@@ -150,11 +150,11 @@ function sessionsWithGaps(start, end, sessionWrapper){
         };
     });
     var breaks = _([0, _.map(sessions, function(session){
-        return [session.time, session.end];
+        return [session.start, session.end];
     }), end - start]).flattenDeep().chunk(2).reject(_.spread(_.eq))
-        .map(_.partial(_.zipObject,['time', 'end'])).value();
-    var schedule = _([sessions, breaks]).flatten().sortBy('time').each(function(item){
-        item.duration = item.end - item.time;
+        .map(_.partial(_.zipObject,['start', 'end'])).value();
+    var schedule = _([sessions, breaks]).flatten().sortBy('start').each(function(item){
+        item.duration = item.end - item.start;
     }).value();
     return (schedule);
 }
@@ -195,7 +195,9 @@ function buildTimeTable(selector, rawData) {
     var legendContentContainer = legendContainer.classedDiv('content');
 
     var baseTime = new Date(0,0,0,0,0).getTime();
-    var legendIntervals = _(d3.range(earliestIntoDay, latestIntoDay, 30)).map(function(offset){
+    var intervals = _(d3.range(earliestIntoDay, latestIntoDay, 30));
+    latestIntoDay = Math.max(latestIntoDay, intervals.last() + 30);
+    var legendIntervals = intervals.map(function(offset){
         return (
         d3.time.format('%H:%M')(new Date(baseTime + offset * 60 * 1000)) + ' - ' +
         d3.time.format('%H:%M')(new Date(baseTime + (offset + 30)* 60 * 1000)));

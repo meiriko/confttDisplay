@@ -30,7 +30,9 @@ function buildTimeTable(selector, rawData) {
     var legendContentContainer = legendContainer.classedDiv('content');
 
     var baseTime = new Date(0,0,0,0,0).getTime();
-    var legendIntervals = _(d3.range(earliestIntoDay, latestIntoDay, 30)).map(function(offset){
+    var intervals = _(d3.range(earliestIntoDay, latestIntoDay, 30));
+    latestIntoDay = Math.max(latestIntoDay, intervals.last() + 30);
+    var legendIntervals = intervals.map(function(offset){
         return (
         d3.time.format('%H:%M')(new Date(baseTime + offset * 60 * 1000)) + ' - ' +
         d3.time.format('%H:%M')(new Date(baseTime + (offset + 30)* 60 * 1000)));
