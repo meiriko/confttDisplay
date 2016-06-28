@@ -40,6 +40,7 @@
   "scripts": {
     "xpostpublish": "VERSION=`node -e 'console.log(require(\"./package.json\").version)'`; git push && git push --tags && cp -v README.md LICENSE confttDisplay.js && git commit -m \"Release $VERSION.\" && git tag -am \"Release $VERSION.\" v${VERSION} && git push && git push --tags && cd - && git commit -m \"d3 ${VERSION}\" && git push",
     "prepublish": "rm -f confttDisplay.js && smash src/confttDisplay.js > confttDisplay.js",
+    "localpublish": "cp confttDisplay.js ../conftt-editor/node_modules/confttDisplay/",
     "xtest": "vows && echo"
   },
   "version": "0.9.0"

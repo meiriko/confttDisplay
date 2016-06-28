@@ -81,7 +81,7 @@ function buildTopicsList(selector, rawData) {
 function generateTopicsTree(rawData) {
     var data = Defiant.getSnapshot(rawData);
     var topicSessions = JSON.search(data, '/*/sessions[(./topics[(id)])]');
-    var topics = _(JSON.search(data, '/*/sessions/topics[(id)]')).uniq().sortBy('id').value();
+    var topics = _(JSON.search(data, '/*/sessions/topics[(id)]')).uniq(_.property('id')).sortBy('id').value();
     // var noTopicSessions = JSON.search(data, '/*/sessions[not(./topics)]');
     var noTopicSessions = JSON.search(data, '/*/sessions[(./topics[not(id)])]');
     _.each(topicSessions, function(session){
@@ -101,7 +101,7 @@ function generateTopicsTree(rawData) {
                 topic: topic,
                 name: topic.name,
                 sessions: _.filter(topicSessions, function (session) {
-                    return _.contains(session.topics, topic);
+                    return _.find(session.topics, topic);
                 })
             }
         }),
