@@ -30,14 +30,13 @@ function formatSessionTime(session){
             session.time ? d3.time.format('%x ')(session.time) : '' ) +
         formatDuration(session.time, session.duration || session.end);
 }
-function formatTalkDuration(talk, index){
+function formatTalkDuration(talk, index, extraOffset){
     var parentData = _.first(d3.selectAll($(this).closest('.session')).data());
     if(parentData){
-        var offset = _(parentData.talks).take(index).sum('duration');
+        var offset = _(parentData.talks).take(index).sum('duration') + (extraOffset || 0);
         return formatDuration(parentData.time && new Date(parentData.time.getTime() + offset * 60000), talk.duration);
     }
 }
-// import 'table/';
 function addD3Action(name, actionFunc) {
     _.set(d3.selection.enter.prototype, name, actionFunc);
     _.set(d3.selection.prototype, name, actionFunc);
@@ -67,16 +66,26 @@ function buildTopicsList(selector, rawData) {
         .enter().classedDiv('chair-person').text(_.property('name'));
 
     var talksContainer = sessionsContainer.classedDiv('talks').selectAll('div').data(_.property('talks'))
-        .enter().classedDiv('talk');
-    var talksHeading = talksContainer.classedDiv('heading');
-    talksHeading.classedDiv('title').text(_.property('name'));
-    talksHeading.classedDiv('schedule').text(formatTalkDuration);
-    talksContainer.classedDiv('speakers').selectAll('div').data(_.property('speakers'))
-        .enter().classedDiv('speaker').text(_.property('name'));
-    var talksContent = talksContainer.classedDiv('content');
-    talksContent.selectAll('div').data(_.flow(_.property('abstract'), Array.of, _.compact))
-        .enter().classedDiv('abstract').text(_.identity);
-
+        .enter().append(function(d){
+            var className = 'talk'
+            if(_.has(d, 'pro')){
+                className += ' debate';
+            }
+            var debate = d3.select(this).classedDiv(className);
+            return debate.node();
+        });
+    talksContainer.call(buildTalkContent);
+    talksContainer.each(function(d){
+        var debate = d3.select(this);
+        if(_.has(d, 'pro')){
+            debate.selectAll('.talk .pro').data([d.pro]).enter().classedDiv('talk pro');
+        }
+        if(_.has(d, 'con')){
+            debate.selectAll('.talk .con').data([d.con]).enter().classedDiv('talk con');
+        }
+        debate.selectAll('.talk.pro').call(buildTalkContent, 'pro');
+        debate.selectAll('.talk.con').call(buildTalkContent, 'con', _.get(d, 'pro.duration', 0));
+    });
 }
 function generateTopicsTree(rawData) {
     var data = Defiant.getSnapshot(rawData);
@@ -113,6 +122,17 @@ function generateTopicsTree(rawData) {
         })
     ]);
     return (topicsTree);
+}
+function buildTalkContent(talksContainer, debateSection, debateOffset){
+    var talksHeading = talksContainer.classedDiv('heading');
+    talksHeading.classedDiv('title').text(debateSection || _.property('name'));
+    var durationFormatter = (debateOffset ? _.partial(formatTalkDuration, _, _, debateOffset) : formatTalkDuration);
+    talksHeading.classedDiv('schedule').text(durationFormatter);
+    talksContainer.classedDiv('speakers').selectAll('div').data(_.property('speakers'))
+        .enter().classedDiv('speaker').text(_.property('name'));
+    var talksContent = talksContainer.classedDiv('content');
+    talksContent.selectAll('div').data(_.flow(_.property('abstract'), Array.of, _.compact))
+        .enter().classedDiv('abstract').text(_.identity);
 }
 function sessionToDuration(session){
     var result = {start: session.time};
