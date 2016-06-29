@@ -20,7 +20,7 @@ function buildRoomsTimeTable(selector, rawData) {
             }).defaults(emptyDaysForDefaults).value();
     }).value();
 
-    var roomTimeTables = container.selectAll('div').data(d3.entries(byRoomSessions))
+    var roomTimeTables = container.selectAll('div').data(_.sortBy(d3.entries(byRoomSessions), 'key'))
         .enter().classedDiv('room-time-table');
     roomTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
     var timeTables = roomTimeTables.classedDiv('time-table');
