@@ -6,7 +6,8 @@
   var confttDisplay = {
     version: "0.9.0",
     buildTopicsList: buildTopicsList,
-    buildTimeTable: buildTimeTable
+    buildRoomsTimeTable: buildRoomsTimeTable,
+    buildDaysTimeTable: buildDaysTimeTable
   }; // semver
 
 function formatDuration(start, duration){
@@ -183,7 +184,62 @@ function sortByStringDate(key, array){
         return (new Date(_.get(item, key)));
     });
 }
-function buildTimeTable(selector, rawData) {
+function buildRoomsTimeTable(selector, rawData) {
+    var container = d3.select(selector);
+    container.selectAll('*').remove();
+    var data = Defiant.getSnapshot(rawData);
+
+    var scheduledSessions = _.filter(JSON.search(data, '/*/sessions'), _.property('time'));
+    _.each(scheduledSessions, function (session) {
+        if (session.time && !_.isDate(session.time)) {
+            session.time = new Date(session.time);
+        }
+    });
+    var earliestIntoDay = _(scheduledSessions).map('time').map(minutesIntoDay).min();
+    var latestIntoDay = _(scheduledSessions).map(calculateSessionEnd).map(minutesIntoDay).max();
+    var sortedSessionDays = _(scheduledSessions).sortBy('time').map(_.method('time.toDateString')).unique().value();
+    var emptyDaysForDefaults = _.zipObject(sortedSessionDays, _.map(sortedSessionDays, _.constant([])));
+    var byRoomSessions = _(scheduledSessions).groupBy('room.name').omit('undefined').mapValues(function (value) {
+        return _(value).groupBy(_.method('time.toDateString'))
+            .mapValues(function (value) {
+                return _.sortBy(value, 'time');
+            }).defaults(emptyDaysForDefaults).value();
+    }).value();
+
+    var roomTimeTables = container.selectAll('div').data(d3.entries(byRoomSessions))
+        .enter().classedDiv('room-time-table');
+    roomTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
+    var timeTables = roomTimeTables.classedDiv('time-table');
+    var legendContainer = timeTables.classedDiv('legend column');
+    legendContainer.classedDiv('title').text('time');
+    var legendContentContainer = legendContainer.classedDiv('content');
+
+    var baseTime = new Date(0, 0, 0, 0, 0).getTime();
+    var intervals = _(d3.range(earliestIntoDay, latestIntoDay, 30));
+    latestIntoDay = Math.max(latestIntoDay, intervals.last() + 30);
+    var legendIntervals = intervals.map(function (offset) {
+        return (
+        d3.time.format('%H:%M')(new Date(baseTime + offset * 60 * 1000)) + ' - ' +
+        d3.time.format('%H:%M')(new Date(baseTime + (offset + 30) * 60 * 1000)));
+    }).value();
+    legendContentContainer.selectAll('div.time').data(legendIntervals)
+        .enter().classedDiv('time').text(_.identity);
+    var dayTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(sortByStringDate, 'key')))
+        .enter().classedDiv('day column');
+    dayTables.classedDiv('title').text(_.property('key'));
+    var sessionsContainer = dayTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
+        .enter().classedDiv('session')
+        .style('flex', function (d) {
+            return d.duration + ' ' + d.duration + ' 0px';
+        })
+        .each(function (d) {
+            d3.select(this).style(_.get(d, 'session.style', {}));
+        });
+    sessionsContainer.classedDiv('session-title').text(_.property('session.name'));
+    sessionsContainer.classedDiv('session-description').text(_.property('session.description'));
+    truncate(selector, container);
+}
+function buildDaysTimeTable(selector, rawData){
     var container = d3.select(selector);
     container.selectAll('*').remove();
     var data = Defiant.getSnapshot(rawData);
@@ -197,19 +253,21 @@ function buildTimeTable(selector, rawData) {
     var earliestIntoDay = _(scheduledSessions).map('time').map(minutesIntoDay).min();
     var latestIntoDay = _(scheduledSessions).map(calculateSessionEnd).map(minutesIntoDay).max();
     var daySpan = latestIntoDay - earliestIntoDay;
-    var sortedSessionDays = _(scheduledSessions).sortBy('time').map(_.method('time.toDateString')).unique().value();
-    var emptyDaysForDefaults = _.zipObject(sortedSessionDays, _.map(sortedSessionDays, _.constant([])));
-    var byRoomSessions = _(scheduledSessions).groupBy('room.name').omit('undefined').mapValues(function(value){
-        return _(value).groupBy(_.method('time.toDateString'))
-            .mapValues(function(value){
-                return _.sortBy(value, 'time');
-            }).defaults(emptyDaysForDefaults).value();
-    }).value();
 
-    var roomTimeTables = container.selectAll('div').data(d3.entries(byRoomSessions))
+    var roomsList = _(scheduledSessions).map('room.name').compact().uniq().sortBy().value();
+    var emptyRoomsForDefaults = _.zipObject(roomsList, _.map(roomsList, _.constant([])));
+    var byDaySessions = _.sortBy(d3.entries(_(scheduledSessions).groupBy(_.method('time.toDateString'))
+        .mapValues(function(value){
+            return _(value).groupBy(_.property('room.name')).omit('undefined').mapValues(function(value) {
+                return _.sortBy(value, 'time');
+            }).defaults(emptyRoomsForDefaults).value();
+        }).value()), function(day){
+        return new Date(day.key);
+    });
+    var dayTimeTables = container.selectAll('div').data(byDaySessions)
         .enter().classedDiv('room-time-table');
-    roomTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
-    var timeTables = roomTimeTables.classedDiv('time-table');
+    dayTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
+    var timeTables = dayTimeTables.classedDiv('time-table');
     var legendContainer = timeTables.classedDiv('legend column');
     legendContainer.classedDiv('title').text('time');
     var legendContentContainer = legendContainer.classedDiv('content');
@@ -224,10 +282,10 @@ function buildTimeTable(selector, rawData) {
     }).value();
     legendContentContainer.selectAll('div.time').data(legendIntervals)
         .enter().classedDiv('time').text(_.identity);
-    var dayTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(sortByStringDate, 'key')))
+    var roomTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(_.sortBy, _, 'key')))
         .enter().classedDiv('day column');
-    dayTables.classedDiv('title').text(_.property('key'));
-    var sessionsContainer = dayTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
+    roomTables.classedDiv('title').text(_.property('key'));
+    var sessionsContainer = roomTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
         .enter().classedDiv('session')
         .style('flex', function(d){return d.duration + ' ' + d.duration + ' 0px';})
         .each(function(d){
@@ -235,12 +293,10 @@ function buildTimeTable(selector, rawData) {
         });
     sessionsContainer.classedDiv('session-title').text(_.property('session.name'));
     sessionsContainer.classedDiv('session-description').text(_.property('session.description'));
-
-    // $('.session').ellipsis({setTitle: 'onEllipsis'});
-    // $(document).delegate('.is-truncated', 'mouseover', function(){
-    // 	console.log(arguments);
-    // });
-    $('.time-tables .time-table .session').dotdotdot();
+    truncate(selector, container);
+}
+function truncate(selector, container){
+    $(selector).find('.time-table .session').dotdotdot();
     $('.is-truncated').qtip({
         content: {
             // text: 'You must have known to click me from the browser tooltip...!?'

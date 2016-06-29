@@ -1,4 +1,6 @@
 import 'session-duration-utils';
 import 'session-with-gaps';
 import 'sort';
-import 'build';
+import 'buildByRooms';
+import 'buildByDays';
+import 'truncate';
