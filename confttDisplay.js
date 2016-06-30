@@ -7,7 +7,8 @@
     version: "0.9.0",
     buildTopicsList: buildTopicsList,
     buildRoomsTimeTable: buildRoomsTimeTable,
-    buildDaysTimeTable: buildDaysTimeTable
+    buildDaysTimeTable: buildDaysTimeTable,
+    tabifyTable: tabifyTable
   }; // semver
 
 function formatDuration(start, duration){
@@ -206,8 +207,8 @@ function buildRoomsTimeTable(selector, rawData) {
             }).defaults(emptyDaysForDefaults).value();
     }).value();
 
-    var roomTimeTables = container.selectAll('div').data(d3.entries(byRoomSessions))
-        .enter().classedDiv('room-time-table');
+    var roomTimeTables = container.selectAll('div').data(_.sortBy(d3.entries(byRoomSessions), 'key'))
+        .enter().classedDiv('titled-time-table');
     roomTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
     var timeTables = roomTimeTables.classedDiv('time-table');
     var legendContainer = timeTables.classedDiv('legend column');
@@ -225,7 +226,7 @@ function buildRoomsTimeTable(selector, rawData) {
     legendContentContainer.selectAll('div.time').data(legendIntervals)
         .enter().classedDiv('time').text(_.identity);
     var dayTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(sortByStringDate, 'key')))
-        .enter().classedDiv('day column');
+        .enter().classedDiv('data column');
     dayTables.classedDiv('title').text(_.property('key'));
     var sessionsContainer = dayTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
         .enter().classedDiv('session')
@@ -265,7 +266,7 @@ function buildDaysTimeTable(selector, rawData){
         return new Date(day.key);
     });
     var dayTimeTables = container.selectAll('div').data(byDaySessions)
-        .enter().classedDiv('room-time-table');
+        .enter().classedDiv('titled-time-table');
     dayTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
     var timeTables = dayTimeTables.classedDiv('time-table');
     var legendContainer = timeTables.classedDiv('legend column');
@@ -283,7 +284,7 @@ function buildDaysTimeTable(selector, rawData){
     legendContentContainer.selectAll('div.time').data(legendIntervals)
         .enter().classedDiv('time').text(_.identity);
     var roomTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(_.sortBy, _, 'key')))
-        .enter().classedDiv('day column');
+        .enter().classedDiv('data column');
     roomTables.classedDiv('title').text(_.property('key'));
     var sessionsContainer = roomTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
         .enter().classedDiv('session')
@@ -335,6 +336,53 @@ function truncate(selector, container){
             },
             my: 'middle left',
             at: 'middle right'
+        }
+    });
+}
+function tabifyTable(selector){
+    var tablesContainer = $(selector);
+    var tables = tablesContainer.find('.titled-time-table');
+    var tableNames = tables.find('.heading .title');
+    var rbGroupName = selector.replace(/[\\s.]/gi, '');
+    var tablesSelector = _.map(tableNames, function(tableName, index){
+        return '<label class="radio-inline"><input type="radio" name="' + rbGroupName + '" value="' + index +
+            '">' + $(tableName).text() + '</label>'
+    });
+    var rButtons = $('<div><label class="radio-inline"><input type="radio" name="' + rbGroupName + '" value="-1"' +
+        'checked>all</label>' + tablesSelector.join('') + '</div>');
+    rButtons.find('input').on('click', _.partial(toggleTables, tables));
+    var tabs = rButtons.insertBefore(tablesContainer.children().first());
+    tabifySections(tables, tabs, rbGroupName + '-sections');
+}
+function tabifySections(tables, tabs, rbGroupName){
+    var sections = tables.first().find('.column.data .title');
+    var sectionsSelector = _.map(sections, function(section, index){
+        return '<label class="radio-inline"><input type="radio" name="' + rbGroupName + '" value="' + index +
+            '">' + $(section).text() + '</label>'
+    });
+    var rButtons = $('<div><label class="radio-inline"><input type="radio" name="' + rbGroupName +
+        '" value="-1" checked>all</label>' + sectionsSelector.join('') + '</div>');
+    rButtons.find('input').on('click', _.partial(toggleSections, tables));
+    rButtons.insertAfter(tabs);
+}
+
+function toggleTables(tables, event){
+    if(this.value < 0){
+        tables.css('display', 'inherit');
+    } else {
+        tables.css('display', 'none');
+        tables.eq(this.value).css('display', 'inherit');
+    }
+}
+function toggleSections(tables, event){
+    var index = this.value;
+    tables.each(function(){
+        var sections = $(this).find('.data.column');
+        if(index < 0) {
+            sections.css('display', 'inherit')
+        } else {
+            sections.css('display', 'none')
+            sections.eq(index).css('display', 'inherit');
         }
     });
 }

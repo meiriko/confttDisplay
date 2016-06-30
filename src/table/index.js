@@ -4,3 +4,5 @@ import 'sort';
 import 'buildByRooms';
 import 'buildByDays';
 import 'truncate';
+import 'tabify/';
+import 'toggle/';

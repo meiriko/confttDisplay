@@ -24,7 +24,7 @@ function buildDaysTimeTable(selector, rawData){
         return new Date(day.key);
     });
     var dayTimeTables = container.selectAll('div').data(byDaySessions)
-        .enter().classedDiv('room-time-table');
+        .enter().classedDiv('titled-time-table');
     dayTimeTables.classedDiv('heading').classedDiv('title').text(_.property('key'));
     var timeTables = dayTimeTables.classedDiv('time-table');
     var legendContainer = timeTables.classedDiv('legend column');
@@ -42,7 +42,7 @@ function buildDaysTimeTable(selector, rawData){
     legendContentContainer.selectAll('div.time').data(legendIntervals)
         .enter().classedDiv('time').text(_.identity);
     var roomTables = timeTables.selectAll('div.day').data(_.flow(_.property('value'), d3.entries, _.partial(_.sortBy, _, 'key')))
-        .enter().classedDiv('day column');
+        .enter().classedDiv('data column');
     roomTables.classedDiv('title').text(_.property('key'));
     var sessionsContainer = roomTables.classedDiv('content').selectAll('div').data(_.partial(sessionsWithGaps, earliestIntoDay, latestIntoDay))
         .enter().classedDiv('session')
